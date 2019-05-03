@@ -11,6 +11,7 @@
 const unsigned gene_length = (NUM_HIDDEN_LAYER << 8) + 64; // 3 hidden layers + 1 output layer
 
 extern std::mt19937 generator;
+std::normal_distribution <double> mutation_gen(0, 1);
 GAME game[NUM_TEST_LIMIT]; //disable to parallel
 
 class GENE
@@ -38,7 +39,6 @@ public:
 	void crossover(const double * p1, const double * p2) {}
 	void mutation(const GENE & p, const double var)
 	{
-		std::normal_distribution <double> mutation_gen(0, var);
 		#pragma omp parallel for
 		for(unsigned i = 0 ; i < gene_length ; i++) gene[i] = p.gene[i] + var * mutation_gen(generator);
 	}
