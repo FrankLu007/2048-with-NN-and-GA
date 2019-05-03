@@ -77,7 +77,7 @@ int main(int N, char ** args)
 		{
 			if(mutation_success * 5 > section) var /= alpha;
 			else if(mutation_success * 5 < section) var *= alpha;
-			mutation_success++;
+			mutation_success = ;
 		}
 	}
 	return 0;
