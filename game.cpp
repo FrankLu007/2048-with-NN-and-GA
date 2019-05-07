@@ -8,7 +8,7 @@
 const bool debug = false;
 const unsigned short location_array[4][4] = {{12, 13, 14, 15}, {0, 4, 8, 12}, {0, 1, 2, 3}, {3, 7, 11, 15}};
 std::mt19937 generator;
-std::uniform_int_distribution <int> next_tile_gen(0, 10), location_gen(0, 3);
+std::uniform_int_distribution <int> next_tile_gen(0, 9), location_gen(0, 3);
 
 class GAME
 {

@@ -4,9 +4,8 @@
 #include <omp.h>
 #include "game.cpp"
 
-
-#define NUM_TEST_LIMIT 100
-#define ITERATION 10000000
+#define NUM_TEST_LIMIT 10000
+#define ITERATION 500
 
 const unsigned gene_length = (NUM_HIDDEN_LAYER << 8) + 64; // 3 hidden layers + 1 output layer
 
@@ -20,6 +19,11 @@ class GENE
 	double score;
 public:
 	GENE() : score(-1) {}
+	GENE(FILE * fp)
+	{
+		for(int i = 0 ; i < gene_length ; i++) fscanf(fp, "%lf", &gene[i]);
+		score = -1;
+	}
 	double get_score() {return score;}
 	double count_score(int time = NUM_TEST_LIMIT)
 	{
@@ -42,16 +46,17 @@ public:
 		#pragma omp parallel for
 		for(unsigned i = 0 ; i < gene_length ; i++) gene[i] = p.gene[i] + var * mutation_gen(generator);
 	}
-	void print(int l)
+	void print(int l = gene_length)
 	{
-		for(int i = 0 ; i < l ; i++) printf("%lf ", gene[i]);
-		printf("\n");
+		std::FILE * fp = std::fopen("gene.txt", "w");
+		for(int i = 0 ; i < l ; i++) std::fprintf(fp, "%lf ", gene[i]);
+		std::fprintf(fp, "\n");
 	}
 };
 
 int main(int N, char ** args)
 {
-	if(N != 3) 
+	if(N < 3) 
 	{
 		std::printf("Error format.\n"); 
 		exit(-1);
@@ -60,9 +65,11 @@ int main(int N, char ** args)
 	double var = 0.1, alpha = std::atof(args[2]);
 	unsigned long long mutation_success = 0, section = std::atoll(args[1]);
 
+	if(N == 4) parent = GENE(std::fopen(args[3], "r"));
+
 	generator.seed(time(NULL));
 	parent.count_score();
-	printf("0 : %lf\n", parent.get_score());
+	printf("Initial value : %lf %lf\n", parent.get_score(), var);
 
 	for(unsigned long long iteration = 1 ; iteration < ITERATION ; iteration++)
 	{
@@ -71,14 +78,17 @@ int main(int N, char ** args)
 		{
 			std::swap(parent, child);
 			mutation_success++;
-			std::printf("%llu : %lf\n", iteration, parent.get_score());
+			std::printf("Iteration : %5llu : %lf %lf\n", iteration, parent.get_score(), var);
 		}
 		if(!(iteration % section))
 		{
 			if(mutation_success * 5 > section) var /= alpha;
 			else if(mutation_success * 5 < section) var *= alpha;
-			mutation_success = ;
+			var = std::max(0.0001, var);
+			mutation_success = 0;
 		}
+		if(iteration % 100 == 0) std::printf("Iteration : %5llu %lf\n", iteration, var);
 	}
+	parent.print();
 	return 0;
 }
