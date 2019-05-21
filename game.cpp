@@ -3,7 +3,10 @@
 #include <cstdio>
 #include <random>
 
+//#define FNN // if FNN is not defined, it will use CNN automatically
+
 #define NUM_HIDDEN_LAYER 3
+#define POOL_SIZE 4
 
 const bool debug = false;
 const unsigned short location_array[4][4] = {{12, 13, 14, 15}, {0, 4, 8, 12}, {0, 1, 2, 3}, {3, 7, 11, 15}};
@@ -13,7 +16,13 @@ std::uniform_int_distribution <int> next_tile_gen(0, 9), location_gen(0, 3);
 class GAME
 {
 	//Neural Network
-	double hidden_layer_output[NUM_HIDDEN_LAYER + 1][16], output_layer[4];
+	#ifdef FNN
+	double hidden_layer_output[NUM_HIDDEN_LAYER + 1][16];
+	#else
+	double hidden_layer_output[3][16];
+	#endif
+
+	double output_layer[4];
 
 	//Board
 	unsigned short board[16], slide_dir[4];
@@ -21,6 +30,7 @@ public:
 	GAME(): slide_dir({0, 1, 2, 3}) {}
 
 	//Neural Network
+	#ifdef FNN
 	void get_NN_value(const double * weight)
 	{
 		double * last_layer, * current_layer;
@@ -50,6 +60,33 @@ public:
 			for(int j = i + 1 ; j < 4 ; j++) 
 				if(output_layer[slide_dir[i]] < output_layer[slide_dir[j]]) std::swap(slide_dir[i], slide_dir[j]);
 	}
+	#else
+	double matrix_multiple(const unsigned short loc, const unsigned short layer, const double * pool) //loc : location of start point
+	{
+		double sum = 0;
+		const unsigned short length = 4 - layer;
+		for(int i = 0 ; i < 2 ; i++) for(int j = 0 ; j < 2 ; j++) for(int k = 0 ; k < 2 ; k++) 
+			sum += hidden_layer_output[layer][i * length + k] * pool[k * 2 + j];
+		return sum;
+	}
+	void get_NN_value(const double * weight)
+	{
+		std::memset(hidden_layer_output, 0, sizeof(hidden_layer_output));
+		std::memset(output_layer, 0, sizeof(output_layer));
+		for(int i = 0 ; i < 16 ; i++) hidden_layer_output[0][i] = board[i];
+
+		for(int i = 0 ; i < 3 ; i++) for(int j = 0 ; j < 3 ; j++)
+			hidden_layer_output[1][i * 3 + j] += matrix_multiple(i * 4 + j, 0, weight);
+		for(int i = 0 ; i < 2 ; i++) for(int j = 0 ; j < 2 ; j++)
+			hidden_layer_output[2][i * 2 + j] += matrix_multiple(i * 3 + j, 1, weight + 4);
+		for(int i = 0 ; i < 2 ; i++) for(int j = 0 ; j < 2 ; j++)
+			output_layer[i] += matrix_multiple(i * 2 + j, 2, weight + 8);
+
+		for(int i = 0 ; i < 4 ; i++) // sort to find the best move
+			for(int j = i + 1 ; j < 4 ; j++) 
+				if(output_layer[slide_dir[i]] < output_layer[slide_dir[j]]) std::swap(slide_dir[i], slide_dir[j]);
+	}
+	#endif
 	
 	//Board
 	int test(const double * weight)
