@@ -10,6 +10,7 @@
 
 const bool debug = false;
 const unsigned short location_array[4][4] = {{12, 13, 14, 15}, {0, 4, 8, 12}, {0, 1, 2, 3}, {3, 7, 11, 15}};
+const unsigned short match[] = {3, 7, 11, 15, 2, 6, 10, 14, 1, 5, 9, 13, 0, 4, 8, 12};
 std::mt19937 generator;
 std::uniform_int_distribution <int> next_tile_gen(0, 9), location_gen(0, 3);
 
@@ -34,28 +35,56 @@ public:
 	void get_NN_value(const double * weight)
 	{
 		double * last_layer, * current_layer;
+		unsigned short tmp_board[16], tmp_rotate[16];
 
 		//initialize
-		std::memset(hidden_layer_output, 0, sizeof(hidden_layer_output));
 		std::memset(output_layer, 0, sizeof(output_layer));
-		for(int i = 0 ; i < 16 ; i++) hidden_layer_output[0][i] = board[i];
+		for(int i = 0 ; i < 16 ; i++) tmp_board[i] = board[i];
 
-		for(int i = 1 ; i <= NUM_HIDDEN_LAYER ; i++)
+		for(int rotate = 0 ; rotate < 8 ; rotate++)
 		{
-			last_layer = hidden_layer_output[i-1];
-			current_layer = hidden_layer_output[i];
+			std::memset(hidden_layer_output, 0, sizeof(hidden_layer_output));
+			for(int i = 0 ; i < 16 ; i++) hidden_layer_output[0][i] = tmp_board[i];
+
+			for(int i = 1 ; i <= NUM_HIDDEN_LAYER ; i++)
+			{
+				last_layer = hidden_layer_output[i-1];
+				current_layer = hidden_layer_output[i];
+				unsigned tmp = (i-1) * 17 * 16;
+				#pragma omp parallel for
+				for(int j = 0 ; j < 16 ; j++) // current layer
+				{
+					for(int k = 0 ; k < 16 ; k++) // last layer
+						current_layer[j] += last_layer[k] * weight[tmp + (j * 17) + k];
+					current_layer[j] += weight[tmp + (j + 1) * 17]; //bias
+				}
+			}
 			#pragma omp parallel for
-			for(int j = 0 ; j < 16 ; j++) // current layer
-				for(int k = 0 ; k < 16 ; k++) // last layer
-					current_layer[j] += last_layer[k] * weight[((i-1) << 8) + (j << 4) + k];
+			for(int i = 0 ; i < 4 ; i++) //output layer
+			{
+				last_layer = hidden_layer_output[NUM_HIDDEN_LAYER];
+				unsigned tmp = NUM_HIDDEN_LAYER * 17 * 16, dir = (i + rotate) & 3;
+				for(int j = 0 ; j < 16 ; j++) // nodes in the last hidden layer
+					output_layer[dir] += last_layer[j] * weight[tmp + (i * 17) + j];
+				output_layer[dir] += weight[tmp + (i + 1) * 17]; // bias
+			}
+
+			//reflect
+			if(i == 3) 
+			{
+				for(int i = 0 ; i < 8 ; i++) 
+					if(i < 4) std::swap(tmp_board[i], tmp_board[i + 12]);
+					else std::swap(tmp_board[i], tmp_board[i + 4]);
+				std::swap(output_layer[0], output_layer[2]);
+			}
+
+			// rotate clockwise
+			for(int i = 0 ; i < 16 ; i++) tmp_rotate[i] = tmp_board[i];
+			for(int i = 0 ; i < 16 ; i++) tmp_board[match[i]] = tmp_rotate[i];
 		}
-		#pragma omp parallel for
-		for(int i = 0 ; i < 4 ; i++) //output layer
-		{
-			last_layer = hidden_layer_output[NUM_HIDDEN_LAYER];
-			for(int j = 0 ; j < 16 ; j++) // nodes in the last hidden layer
-				output_layer[i] += last_layer[j] * weight[(NUM_HIDDEN_LAYER << 8) + (i << 4) + j];
-		}
+
+		std::swap(output_layer[0], output_layer[2]);
+
 		for(int i = 0 ; i < 4 ; i++) // sort to find the best move
 			for(int j = i + 1 ; j < 4 ; j++) 
 				if(output_layer[slide_dir[i]] < output_layer[slide_dir[j]]) std::swap(slide_dir[i], slide_dir[j]);

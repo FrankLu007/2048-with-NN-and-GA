@@ -4,11 +4,11 @@
 #include <omp.h>
 #include "game.cpp"
 
-#define NUM_TEST_LIMIT 10000
+#define NUM_TEST_LIMIT 1000
 #define ITERATION 500
 
 #ifdef FNN
-const unsigned gene_length = (NUM_HIDDEN_LAYER << 8) + 64; // 3 hidden layers + 1 output layer
+const unsigned gene_length = (NUM_HIDDEN_LAYER * 17 * 16) + 68; // 3 hidden layers + 1 output layer
 #else
 const unsigned gene_length = 12; // 3 pool matrix with each is 2 x 2
 #endif
