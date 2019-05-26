@@ -20,7 +20,7 @@ class GAME
 	#ifdef FNN
 	double hidden_layer_output[NUM_HIDDEN_LAYER + 1][16];
 	#else
-	double hidden_layer_output[3][16];
+	double hidden_layer_output[4][16];
 	#endif
 
 	double output_layer[4];
@@ -109,7 +109,9 @@ public:
 		for(int i = 0 ; i < 2 ; i++) for(int j = 0 ; j < 2 ; j++)
 			hidden_layer_output[2][i * 2 + j] += matrix_multiple(i * 3 + j, 1, weight + 4);
 		for(int i = 0 ; i < 2 ; i++) for(int j = 0 ; j < 2 ; j++)
-			output_layer[i] += matrix_multiple(i * 2 + j, 2, weight + 8);
+			hidden_layer_output[3][i * 2 + j] += matrix_multiple(i * 2 + j, 2, weight + 8);
+		for(int i = 0 ; i < 4 ; i++) for(int j = 0 ; j < 5 ; j++)
+			output_layer[i] += weight[12 + i * 5 + j];
 
 		for(int i = 0 ; i < 4 ; i++) // sort to find the best move
 			for(int j = i + 1 ; j < 4 ; j++) 

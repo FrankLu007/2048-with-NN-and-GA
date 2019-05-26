@@ -10,7 +10,7 @@
 #ifdef FNN
 const unsigned gene_length = (NUM_HIDDEN_LAYER * 17 * 16) + 68; // 3 hidden layers + 1 output layer
 #else
-const unsigned gene_length = 12; // 3 pool matrix with each is 2 x 2
+const unsigned gene_length = 32; // 3 pool matrix with each is 2 x 2 and 20 for FNN
 #endif
 
 extern std::mt19937 generator;
