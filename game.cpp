@@ -69,6 +69,11 @@ public:
 				output_layer[dir] += weight[tmp + (i + 1) * 17]; // bias
 			}
 
+
+			// rotate clockwise
+			for(int i = 0 ; i < 16 ; i++) tmp_rotate[i] = tmp_board[i];
+			for(int i = 0 ; i < 16 ; i++) tmp_board[match[i]] = tmp_rotate[i];
+
 			//reflect
 			if(i == 3) 
 			{
@@ -77,10 +82,6 @@ public:
 					else std::swap(tmp_board[i], tmp_board[i + 4]);
 				std::swap(output_layer[0], output_layer[2]);
 			}
-
-			// rotate clockwise
-			for(int i = 0 ; i < 16 ; i++) tmp_rotate[i] = tmp_board[i];
-			for(int i = 0 ; i < 16 ; i++) tmp_board[match[i]] = tmp_rotate[i];
 		}
 
 		std::swap(output_layer[0], output_layer[2]);
@@ -138,9 +139,9 @@ public:
 			dir = 4;
 			get_NN_value(weight);
 			for(int i = 0 ; i < 4 ; i++) if(slide(slide_dir[i])) {dir = slide_dir[i]; break;}
+			if(dir & 4) break;
 			if(debug) std::printf("move : %d\n", dir);
 			print_board();
-			if(dir & 4) break;
 			next_tile = next_tile_gen(generator) ? 1 : 2;
 			while(!put_tile(location_array[dir][location_gen(generator)], next_tile));
 			print_board();
@@ -148,7 +149,7 @@ public:
 
 		//count the score
 		unsigned long long score = 0;
-		for(int i = 0 ; i < 16 ; i++) score += std::pow(3, board[i] - 1);
+		for(int i = 0 ; i < 16 ; i++) score += std::pow(5, board[i] - 1);
 		return score;
 	}
 	bool put_tile(const int location, const int tile) // if we can place the tile, do it and return true ; otherwise return false
